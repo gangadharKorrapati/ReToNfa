@@ -19,9 +19,14 @@ public class ReToNfa {
     public static void main(String[] args) {
         Nfa a = new Nfa('a');
         Nfa b = new Nfa('b');
-        Nfa d = new Nfa('d');
-        Nfa c = Nfa.union(d, Nfa.concat(a, b));
+        
+        a.display();
+        b.display();
+        Nfa c = Nfa.union(a, Nfa.closure(Nfa.concat(a,b)));
         c.display();
+        
+        a.display();
+        b.display();
         // TODO code application logic here
     }
 
@@ -29,8 +34,8 @@ public class ReToNfa {
 
 class Edge {
 
-    private int fromState;
-    private int toState;
+    private final int fromState;
+    private final int toState;
     private final char transVal;
 
     public Edge(int fs, char t, int ts) {
@@ -57,14 +62,6 @@ class Edge {
         return transVal;
     }
 
-    public void setFromState(int fs) {
-        fromState = fs;
-    }
-
-    public void setToState(int ts) {
-        toState = ts;
-    }
-
     public void display() {
         System.out.println("\nFrom State:" + fromState + "\tTranssion Value:" + transVal + "\tTo State:" + toState);
     }
@@ -72,101 +69,121 @@ class Edge {
 
 class Nfa {
 
-    private ArrayList<Edge> edges;
-    private int edgeCount;
+    private final ArrayList<Edge> edges;
+    private final int stateCount;
 
     public Nfa() {
-        edgeCount = 0;
+        stateCount = 1;
         edges = new ArrayList();
         Edge e = new Edge(0, 1);
-        insertEdge(e);
+        edges.add(e);
     }
 
     public Nfa(char ch) {
-        edgeCount = 0;
+        stateCount = 1;
         edges = new ArrayList();
         Edge e = new Edge(0, ch, 1);
-        insertEdge(e);
+        edges.add(e);
     }
 
-    public boolean insertEdge(Edge e) {
-        boolean status = edges.add(e);
-        if (status) {
-            edgeCount++;
-        }
-        return status;
+    public Nfa(ArrayList<Edge> es, int c) {
+        edges = es;
+        stateCount = c;
     }
 
     public ArrayList<Edge> getEdges() {
         return edges;
     }
 
-    public void setEdges(ArrayList<Edge> setedges) {
-        edges = setedges;
-    }
-
-    public int getEndState() {
-        return edgeCount;
-    }
-
-    public int getEdgeCount() {
-        return edgeCount;
-    }
-
-    public void setEdgeCount(int c) {
-        edgeCount = c;
+    public int getStateCount() {
+        return stateCount;
     }
 
     public static Nfa union(Nfa a, Nfa b) {
-        ArrayList<Edge> edgesa = a.getEdges();
-        ArrayList<Edge> edgesb = b.getEdges();
-        int acount = a.getEdgeCount();
-        int bcount = b.getEdgeCount();
+        ArrayList<Edge> edgesa = new ArrayList<>(a.getEdges());
+        ArrayList<Edge> edgesb = new ArrayList<>(b.getEdges());
+        ArrayList<Edge> edgesc = new ArrayList<>();
+        int acount = a.getStateCount();
+        int bcount = b.getStateCount();
+
         for (Edge e : edgesa) {
-            e.setFromState(e.getFromState() + 1);
-            e.setToState(e.getToState() + 1);
+            Edge p = new Edge(e.getFromState() + 1, e.getTransVal(), e.getToState() + 1);
+            edgesc.add(p);
         }
+
         Edge starttoa = new Edge(0, 1);
-        edgesa.add(starttoa);
+        edgesc.add(starttoa);
+
         for (Edge e : edgesb) {
-            e.setFromState(e.getFromState() + acount + 2);
-            e.setToState(acount + e.getToState() + 2);
-            edgesa.add(e);
+            Edge p = new Edge(e.getFromState() + acount + 2, e.getTransVal(), e.getToState() + acount + 2);
+            edgesc.add(p);
         }
 
         Edge starttob = new Edge(0, acount + 2);
-        edgesa.add(starttob);
+        edgesc.add(starttob);
 
         Edge atoend = new Edge(acount + 1, acount + bcount + 3);
-        edgesa.add(atoend);
+        edgesc.add(atoend);
 
         Edge btoend = new Edge(acount + bcount + 2, acount + bcount + 3);
-        edgesa.add(btoend);
-        a.setEdges(edgesa);
-        a.setEdgeCount(acount + bcount + 3);
-        return a;
+        edgesc.add(btoend);
+
+        Nfa c = new Nfa(edgesc, acount + bcount + 3);
+        return c;
     }
 
     public static Nfa concat(Nfa a, Nfa b) {
-        ArrayList<Edge> edgesa = a.getEdges();
-        ArrayList<Edge> edgesb = b.getEdges();
-        int acount = a.getEdgeCount();
-        int bcount = b.getEdgeCount();
-        for (Edge e : edgesb) {
-            e.setFromState(e.getFromState() + acount);
-            e.setToState(e.getToState() + acount);
-            edgesa.add(e);
+        ArrayList<Edge> edgesa = new ArrayList<>(a.getEdges());
+        ArrayList<Edge> edgesb = new ArrayList<>(b.getEdges());
+        ArrayList<Edge> edgesc = new ArrayList<>();
+
+        int acount = a.getStateCount();
+        int bcount = b.getStateCount();
+
+        for (Edge e : edgesa) {
+            Edge p = new Edge(e.getFromState(), e.getTransVal(), e.getToState());
+            edgesc.add(p);
         }
-        a.setEdges(edgesa);
-        a.setEdgeCount(acount + bcount);
-        return a;
+        for (Edge e : edgesb) {
+            Edge p = new Edge(e.getFromState() + acount, e.getTransVal(), e.getToState() + acount);
+            edgesc.add(p);
+        }
+
+        Nfa c = new Nfa(edgesc, acount + bcount);
+        return c;
     }
 
-    public void closure() {
+    public static Nfa closure(Nfa a) {
+        ArrayList<Edge> edgesa = new ArrayList<>(a.getEdges());
+        ArrayList<Edge> edgesc = new ArrayList<>();
+        int acount = a.getStateCount();
 
+        for (Edge e : edgesa) {
+            Edge p = new Edge(e.getFromState() + 1, e.getTransVal(), e.getToState() + 1);
+            edgesc.add(p);
+        }
+        
+        Edge endtostart = new Edge(acount+1, 1);
+        edgesc.add(endtostart);
+
+        Edge nstarttostart = new Edge(0, 1);
+        edgesc.add(nstarttostart);
+
+        Edge endtonend = new Edge(acount + 1, acount + 2);
+        edgesc.add(endtonend);
+
+        Edge nstarttonend = new Edge(0, acount + 2);
+        edgesc.add(nstarttonend);
+
+        Nfa c = new Nfa(edgesc, acount + 2);
+
+        return c;
     }
 
     public void display() {
+        System.out.println("************************NFA************************");
+        System.out.println("\nStart state\t:0");
+        System.out.println("\nEnd State\t:" + stateCount);
         edges.forEach((edge) -> edge.display());
     }
 }
