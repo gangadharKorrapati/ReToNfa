@@ -19,7 +19,8 @@ public class ReToNfa {
     public static void main(String[] args) {
         Nfa a = new Nfa('a');
         Nfa b = new Nfa('b');
-        Nfa c = Nfa.union(a, b);
+        Nfa d = new Nfa('d');
+        Nfa c = Nfa.union(d, Nfa.concat(a, b));
         c.display();
         // TODO code application logic here
     }
@@ -121,23 +122,18 @@ class Nfa {
         ArrayList<Edge> edgesb = b.getEdges();
         int acount = a.getEdgeCount();
         int bcount = b.getEdgeCount();
-        edgesa.stream().map((e) -> {
+        for (Edge e : edgesa) {
             e.setFromState(e.getFromState() + 1);
-            return e;
-        }).forEachOrdered((e) -> {
             e.setToState(e.getToState() + 1);
-        });
+        }
         Edge starttoa = new Edge(0, 1);
         edgesa.add(starttoa);
-        edgesb.stream().map((e) -> {
+        for (Edge e : edgesb) {
             e.setFromState(e.getFromState() + acount + 2);
-            return e;
-        }).map((Edge e) -> {
             e.setToState(acount + e.getToState() + 2);
-            return e;
-        }).forEachOrdered((e) -> {
             edgesa.add(e);
-        });
+        }
+
         Edge starttob = new Edge(0, acount + 2);
         edgesa.add(starttob);
 
@@ -152,7 +148,17 @@ class Nfa {
     }
 
     public static Nfa concat(Nfa a, Nfa b) {
-
+        ArrayList<Edge> edgesa = a.getEdges();
+        ArrayList<Edge> edgesb = b.getEdges();
+        int acount = a.getEdgeCount();
+        int bcount = b.getEdgeCount();
+        for (Edge e : edgesb) {
+            e.setFromState(e.getFromState() + acount);
+            e.setToState(e.getToState() + acount);
+            edgesa.add(e);
+        }
+        a.setEdges(edgesa);
+        a.setEdgeCount(acount + bcount);
         return a;
     }
 
