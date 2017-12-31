@@ -6,6 +6,7 @@
 package retonfa;
 
 import java.util.ArrayList;
+import java.util.Scanner;
 
 /**
  *
@@ -17,17 +18,11 @@ public class ReToNfa {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        Nfa a = new Nfa('a');
-        Nfa b = new Nfa('b');
-        
-        a.display();
-        b.display();
-        Nfa c = Nfa.union(a, Nfa.closure(Nfa.concat(a,b)));
+        System.out.println("enter regexp:");
+        Scanner s = new Scanner(System.in);
+        String str = s.nextLine();
+        Nfa c = new Nfa(str);
         c.display();
-        
-        a.display();
-        b.display();
-        // TODO code application logic here
     }
 
 }
@@ -63,7 +58,7 @@ class Edge {
     }
 
     public void display() {
-        System.out.println("\nFrom State:" + fromState + "\tTranssion Value:" + transVal + "\tTo State:" + toState);
+        System.out.println("\nFrom State:" + fromState + "\tTransition Value:" + transVal + "\tTo State:" + toState);
     }
 }
 
@@ -162,8 +157,8 @@ class Nfa {
             Edge p = new Edge(e.getFromState() + 1, e.getTransVal(), e.getToState() + 1);
             edgesc.add(p);
         }
-        
-        Edge endtostart = new Edge(acount+1, 1);
+
+        Edge endtostart = new Edge(acount + 1, 1);
         edgesc.add(endtostart);
 
         Edge nstarttostart = new Edge(0, 1);
@@ -181,9 +176,82 @@ class Nfa {
     }
 
     public void display() {
-        System.out.println("************************NFA************************");
+        System.out.println("************************Nfa************************");
         System.out.println("\nStart state\t:0");
         System.out.println("\nEnd State\t:" + stateCount);
         edges.forEach((edge) -> edge.display());
+    }
+
+    public Nfa(String str) {
+        Nfa c = Nfa.reToNfa(str);
+        edges = c.getEdges();
+        stateCount = c.getStateCount();
+    }
+
+    public static Nfa reToNfa(String re) {
+        Nfa newnfa = new Nfa();
+        int rl = re.length();
+        if (rl == 0) {
+            return new Nfa();
+        } else if (rl == 1) {
+            return new Nfa(re.charAt(0));
+        } else if (!(re.contains("*") || re.contains("|") || re.contains("(") || re.contains(")"))) {
+            return Nfa.concat(reToNfa(re.substring(0, 1)), reToNfa(re.substring(1, rl)));
+        } else {
+            int br = 0;
+            for (int i = 0; i < rl; i++) {
+                switch (re.charAt(i)) {
+                    case '(': {
+                        br++;
+                        if (i != 0 && br == 1) {
+                            System.out.println(re + " is concat of " + re.substring(0, i) + " and " + re.substring(i, rl));
+                            return Nfa.concat(reToNfa(re.substring(0, i)), reToNfa(re.substring(i, rl)));
+                        }
+                        if (re.charAt(rl - 1) != ')') {
+                            int li = re.lastIndexOf(')');
+                            System.out.println(" the char at " + (rl - 1) + " is " + re.charAt(rl - 1) + "and the last index of ) is " + li);
+                            if (re.charAt(li+1) == '*') {
+                                System.out.println(re + " is concat of " + re.substring(0, li + 1) + " and " + re.substring(li + 2, rl));
+                                return Nfa.concat(reToNfa(re.substring(0, li + 1)), reToNfa(re.substring(li + 2, rl)));
+                            } else {
+                                System.out.println(re + " is concat of " + re.substring(0, li + 1) + " and " + re.substring(li + 1, rl));
+                                return Nfa.concat(reToNfa(re.substring(0, li + 1)), reToNfa(re.substring(li + 1, rl)));
+                            }
+                        }
+                        break;
+                    }
+                    case ')': {
+                        br--;
+                        if (i == rl - 1) {
+                            System.out.println(" removing ( ) " + re + " is same as " + re.substring(1, i));
+                            return reToNfa(re.substring(1, i));
+                        }
+                        break;
+                    }
+                    case '|': {
+                        if (i == 0) {
+                            System.out.println("Wrong RE i = " + i + "br =" + br + " char at i is " + re.charAt(i) + " re is " + re);
+                        } else if (br == 0) {
+                            System.out.println(re + " is union of " + re.substring(0, i) + " and " + re.substring(i + 1, rl));
+                            return Nfa.union(reToNfa(re.substring(0, i)), reToNfa(re.substring(i + 1, rl)));
+                        }
+                        break;
+                    }
+                    case '*': {
+                        if (br == 0) {
+                            if (i == rl - 1) {
+                                System.out.println(re + " is star of " + re.substring(0, i));
+                                return Nfa.closure(reToNfa(re.substring(0, i)));
+                            }
+                            return Nfa.concat(Nfa.closure(reToNfa(re.substring(0, i - 1))), reToNfa(re.substring(i + 1, rl)));
+                        }
+                        break;
+                    }
+
+                }
+
+            }
+        }
+        return newnfa;
     }
 }
