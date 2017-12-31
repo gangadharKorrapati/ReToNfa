@@ -6,6 +6,7 @@
 package retonfa;
 
 import java.util.ArrayList;
+import java.util.Stack;
 import java.util.Scanner;
 
 /**
@@ -189,69 +190,66 @@ class Nfa {
     }
 
     public static Nfa reToNfa(String re) {
-        Nfa newnfa = new Nfa();
-        int rl = re.length();
-        if (rl == 0) {
-            return new Nfa();
-        } else if (rl == 1) {
-            return new Nfa(re.charAt(0));
-        } else if (!(re.contains("*") || re.contains("|") || re.contains("(") || re.contains(")"))) {
-            return Nfa.concat(reToNfa(re.substring(0, 1)), reToNfa(re.substring(1, rl)));
-        } else {
-            int br = 0;
-            for (int i = 0; i < rl; i++) {
-                switch (re.charAt(i)) {
-                    case '(': {
-                        br++;
-                        if (i != 0 && br == 1) {
-                            System.out.println(re + " is concat of " + re.substring(0, i) + " and " + re.substring(i, rl));
-                            return Nfa.concat(reToNfa(re.substring(0, i)), reToNfa(re.substring(i, rl)));
+        re = "(" + re + ")";
+        Stack<Object> stack = new Stack<>();
+        for (int i = 0; i < re.length(); i++) {
+            switch (re.charAt(i)) {
+                case '(':
+                    System.out.println("push(");
+                    stack.push('(');
+                    break;
+                case '|':
+                    System.out.println("push|");
+                    stack.push('|');
+                    break;
+                case '*':
+                    Nfa x = Nfa.closure((Nfa) stack.pop());
+                    System.out.println("*");
+                    x.display();
+                    stack.push(x);
+                    break;
+                case ')':
+                    System.out.println(")");
+                    Stack<Object> hold = new Stack<>();
+                    Object r = stack.pop();
+                    while (r instanceof Nfa || (char) r != '(') {
+                        if (r instanceof Nfa) {
+                            System.out.println("push to hold");
+                            ((Nfa) r).display();
+                        } else {
+                            System.out.println("push |");
                         }
-                        if (re.charAt(rl - 1) != ')') {
-                            int li = re.lastIndexOf(')');
-                            System.out.println(" the char at " + (rl - 1) + " is " + re.charAt(rl - 1) + "and the last index of ) is " + li);
-                            if (re.charAt(li+1) == '*') {
-                                System.out.println(re + " is concat of " + re.substring(0, li + 1) + " and " + re.substring(li + 2, rl));
-                                return Nfa.concat(reToNfa(re.substring(0, li + 1)), reToNfa(re.substring(li + 2, rl)));
-                            } else {
-                                System.out.println(re + " is concat of " + re.substring(0, li + 1) + " and " + re.substring(li + 1, rl));
-                                return Nfa.concat(reToNfa(re.substring(0, li + 1)), reToNfa(re.substring(li + 1, rl)));
-                            }
-                        }
-                        break;
+                        hold.push(r);
+                        r = stack.pop();
                     }
-                    case ')': {
-                        br--;
-                        if (i == rl - 1) {
-                            System.out.println(" removing ( ) " + re + " is same as " + re.substring(1, i));
-                            return reToNfa(re.substring(1, i));
+                    System.out.println("poped(");
+                    Object p = hold.pop();
+                    System.out.println("poped from hold");
+                    ((Nfa) p).display();
+                    while (!hold.empty()) {
+                        Object q = hold.pop();
+                        if (!(q instanceof Nfa)) {
+                            p = Nfa.union((Nfa) p, (Nfa) hold.pop());
+                        } else {
+                            System.out.println("poped from hold");
+                            ((Nfa) q).display();
+                            p = Nfa.concat((Nfa) p, (Nfa) q);
+                            System.out.println("p updated");
+                            ((Nfa) p).display();
                         }
-                        break;
                     }
-                    case '|': {
-                        if (i == 0) {
-                            System.out.println("Wrong RE i = " + i + "br =" + br + " char at i is " + re.charAt(i) + " re is " + re);
-                        } else if (br == 0) {
-                            System.out.println(re + " is union of " + re.substring(0, i) + " and " + re.substring(i + 1, rl));
-                            return Nfa.union(reToNfa(re.substring(0, i)), reToNfa(re.substring(i + 1, rl)));
-                        }
-                        break;
-                    }
-                    case '*': {
-                        if (br == 0) {
-                            if (i == rl - 1) {
-                                System.out.println(re + " is star of " + re.substring(0, i));
-                                return Nfa.closure(reToNfa(re.substring(0, i)));
-                            }
-                            return Nfa.concat(Nfa.closure(reToNfa(re.substring(0, i - 1))), reToNfa(re.substring(i + 1, rl)));
-                        }
-                        break;
-                    }
-
-                }
-
+                    System.out.println("hold empty p to stack");
+                    ((Nfa) p).display();
+                    stack.push((Nfa) p);
+                    break;
+                default:
+                    System.out.println("push to stack");
+                    Nfa one = new Nfa(re.charAt(i));
+                    one.display();
+                    stack.push(one);
+                    break;
             }
         }
-        return newnfa;
+        return (Nfa) stack.pop();
     }
 }
