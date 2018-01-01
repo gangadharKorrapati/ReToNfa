@@ -207,7 +207,7 @@ class Nfa {
         stateCount = c.getStateCount();
     }
 
-    public static Nfa reToNfa(String re) {
+    private static Nfa reToNfa(String re) {
         re = "(" + re + ")";
         Stack<Object> stack = new Stack<>();
         for (int i = 0; i < re.length(); i++) {
